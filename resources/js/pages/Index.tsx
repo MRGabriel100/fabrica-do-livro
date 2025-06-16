@@ -46,34 +46,34 @@ export default function Index() {
   };
 
   // Salva alterações no backend
-  const handleSaveChanges = async () => {
-    if (!currentTask) return;
+  const handleSaveChanges = async (taskToUpdate = currentTask) => {
+  if (!taskToUpdate) return;
 
-    try {
-      const response = await fetch(`/api/tasks/${currentTask.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(currentTask),
-      });
+  try {
+    const response = await fetch(`/api/tasks/${taskToUpdate.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(taskToUpdate),
+    });
 
-      if (!response.ok) {
-        throw new Error('Erro ao atualizar tarefa');
-      }
-
-      const updatedTask = await response.json();
-
-      setTasks((prev) =>
-        prev.map((task) => (task.id === updatedTask.id ? updatedTask : task))
-      );
-
-      setShowEditModal(false);
-    } catch (err) {
-      console.error('Falha ao atualizar:', err);
-      alert('Erro ao atualizar a tarefa.');
+    if (!response.ok) {
+      throw new Error('Erro ao atualizar tarefa');
     }
-  };
+
+    const updatedTask = await response.json();
+
+    setTasks((prev) =>
+      prev.map((task) => (task.id === updatedTask.id ? updatedTask : task)
+    ));
+
+    setShowEditModal(false);
+  } catch (err) {
+    console.error('Falha ao salvar:', err);
+    alert('Não foi possível salvar as alterações.');
+  }
+};
 
   // Cria nova tarefa
   const handleCreateTask = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -134,32 +134,50 @@ const handleDelete = async (taskId: number) => {
   }
 };
   // Concluir tarefa
-  const handleMarkAsCompleted = () => {
-    if (!currentTask) return;
-    setCurrentTask({ ...currentTask, status: 'concluída' });
-  };
+const handleMarkAsCompleted = (id: number) => {
+  const taskToComplete = tasks.find(task => task.id === id);
+
+  if (!taskToComplete) return;
+
+  const updatedTask = { ...taskToComplete, status: 'concluída' } satisfies Task;
+
+  setCurrentTask(updatedTask);
+  handleSaveChanges(updatedTask);
+};
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Minhas Tarefas</h1>
+    <div className='flex-column' id='tarefas'>
+      <h1>Minhas Tarefas</h1>
 
       {/* Botão para abrir o modal de criação */}
       <button
          onClick={() => setShowCreateModal(true)}
-        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        
       >
         Nova Tarefa
       </button>
 
       {/* Listagem de tarefas */}
-      <ul className="mt-4 space-y-2">
+      <ul id='lista-tarefas'>
         {tasks.map((task) => (
           <li
             key={task.id}
             onClick={() => handleEditClick(task)}
-            className="border p-2 rounded cursor-pointer hover:bg-gray-100"
-          >
-            {task.titulo} - <span className="font-medium">{task.status}</span>
+        className='flex-between'
+          ><div>
+            {task.titulo} - <span>{task.status}</span>
+          </div><div>
+            <button className='btn'
+            onClick={(e) => {
+            e.stopPropagation(); handleDelete(task.id)}}
+            ><i className="fa-solid fa-trash"></i></button>
+            <button className='btn'
+            onClick={(e) => {
+            e.stopPropagation();
+            handleMarkAsCompleted(task.id);
+            }}>
+            <i className="fa-solid fa-circle-check"></i></button>
+            </div>
           </li>
         ))}
       </ul>
@@ -167,13 +185,13 @@ const handleDelete = async (taskId: number) => {
 
       {/* Modal de Edição */}
       {showCreateModal && (
-        <div id='modal-tarefa'>
+        <div id='modal-tarefa' className='modal'>
           <div>
 
             <h2>Nova Tarefa</h2>
 
-            <form onSubmit={handleCreateTask}>
-              <div>
+            <form onSubmit={handleCreateTask} className='flex-column gap-8'>
+              <div className='flex-column'>
                 <label>Título</label>
                 <input
                   type="text"
@@ -182,7 +200,7 @@ const handleDelete = async (taskId: number) => {
                 />
               </div>
 
-              <div>
+              <div className='flex-column'>
                 <label>Descrição</label>
                 <textarea
                   placeholder="Descrição da tarefa"
@@ -190,7 +208,7 @@ const handleDelete = async (taskId: number) => {
                 ></textarea>
               </div>
 
-              <div>
+              <div className='flex-column'>
                 <label>Status</label>
                 <select name='status'>
                   <option value="pendente">Pendente</option>
@@ -198,7 +216,7 @@ const handleDelete = async (taskId: number) => {
                 </select>
               </div>
 
-              <div>
+              <div  className='flex-between'>
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
@@ -218,7 +236,7 @@ const handleDelete = async (taskId: number) => {
 
       {/* Modal de Edição */}
       {showEditModal && currentTask && (
-  <div>
+  <div className='modal'>
     <div>
       <button
         onClick={() => setShowEditModal(false)}
@@ -228,8 +246,8 @@ const handleDelete = async (taskId: number) => {
 
       <h2>Editar Tarefa</h2>
 
-      <div>
-        <div>
+      <div  className='flex-column gap-8'>
+        <div className='flex-column'>
           <label>Título</label>
           <input
             type="text"
@@ -240,7 +258,7 @@ const handleDelete = async (taskId: number) => {
           />
         </div>
 
-        <div>
+        <div className='flex-column'>
           <label>Descrição</label>
           <textarea
             value={currentTask.descricao || ''}
@@ -250,7 +268,7 @@ const handleDelete = async (taskId: number) => {
           ></textarea>
         </div>
 
-        <div>
+        <div className='flex-column'>
           <label>Status</label>
           <select
             value={currentTask.status}
@@ -268,11 +286,11 @@ const handleDelete = async (taskId: number) => {
 
         <div>
 
-          <div>
+          <div className='flex-between'>
             <button onClick={() =>handleDelete(currentTask.id)}>
               Excluir
               </button>
-            <button onClick={handleSaveChanges}>
+            <button onClick={() => handleSaveChanges()}>
               Salvar Alterações
             </button>
           </div>
